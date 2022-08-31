@@ -10,3 +10,6 @@
 /*/*.Editor.csproj
 /*/*.Editor.Plugins.csproj
 /*/*.Plugins.csproj
+/Temp
+/Library
+/obj
