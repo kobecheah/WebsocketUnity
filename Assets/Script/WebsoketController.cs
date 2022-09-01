@@ -15,6 +15,7 @@ public class WebsoketController : MonoBehaviour
     WebSocket ws;
     bool playvideoFlag = false;
     bool qrpanelFlag = false;
+    bool sendStatus = false;
     private void Start()
     {
         QrcodePanel.SetActive(true);
@@ -23,22 +24,25 @@ public class WebsoketController : MonoBehaviour
         videoPlayer.Stop();
         logoPlayer.Stop();
 
-        ws = new WebSocket("wss://demo.piesocket.com/v3/channel_1?api_key=VCXCEuvhGcBDP7XhiJJUDvR1e1D3eiVjgZ9VRiaV&notify_self");
+        ws = new WebSocket("wss://quixotic-grey-ceiling.glitch.me/");
         ws.Connect();
+
+
         ws.OnClose += WsOnOnClose;
         ws.OnMessage += (sender, e) =>
         {
-            if (e.Data == "Start")
+            Debug.Log(e.Data);
+            if (e.Data == "CurrentState:1")
             {
                 playvideoFlag = true;
                 Debug.Log("State Start");
             }
-            if (e.Data == "Waiting")
+            if (e.Data == "CurrentState:0")
             {
                 qrpanelFlag = true;
                 Debug.Log("Waiting");
             }
-         
+
         };
         videoPlayer.loopPointReached += EndReached;
 
@@ -46,7 +50,7 @@ public class WebsoketController : MonoBehaviour
     void EndReached(UnityEngine.Video.VideoPlayer vp)
     {
         Debug.Log("VideoPlayer Finish Play");
-        ws.Send("RevealLogo");
+        ws.Send("ChangeState:2");
         videoPlayer.Stop();
         LogoPanel.SetActive(true);
         logoPlayer.Play();
@@ -54,6 +58,20 @@ public class WebsoketController : MonoBehaviour
     }
     private void Update()
     {
+        if (ws.ReadyState == WebSocketState.Open)
+        {
+            if (sendStatus == false)
+            {
+                Debug.LogError("Connected");
+                ws.Send("Connect:Screen");
+                sendStatus = true;
+            }
+
+        }
+        else if (ws.ReadyState == WebSocketState.Closed)
+        {
+            sendStatus = false;
+        }
         if (qrpanelFlag == true)
         {
             QrcodePanel.SetActive(true);
@@ -63,7 +81,8 @@ public class WebsoketController : MonoBehaviour
             LogoPanel.SetActive(false);
             qrpanelFlag = false;
         }
-        if (playvideoFlag == true) {
+        if (playvideoFlag == true)
+        {
             QrcodePanel.SetActive(false);
             VideoPanel.SetActive(true);
             videoPlayer.Play();
@@ -71,7 +90,7 @@ public class WebsoketController : MonoBehaviour
         }
         if (ws == null)
         {
-         
+
             return;
         }
 
