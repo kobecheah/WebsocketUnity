@@ -37,8 +37,12 @@ public class WebsoketController : MonoBehaviour
                 playvideoFlag = true;
                 Debug.Log("State Start");
             }
+    
             if (e.Data == "CurrentState:0")
             {
+                logoPlayer.isLooping = false;
+                logoPlayer.Stop();
+                LogoPanel.SetActive(false);
                 qrpanelFlag = true;
                 Debug.Log("Waiting");
             }
