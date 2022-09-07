@@ -20,9 +20,11 @@ public class MyVideoPlayer : MonoBehaviour
     VideoPlayer vPlayer;
     public int vidFrameLength;
     bool shouldStartPlaying = false;
-    bool reset = false;
     bool sendStatus = false;
     bool IdleWating = false;
+    bool loopIdle = false;
+    bool end = false;
+    bool sendLogo = false;
     // Use this for initialization
     void Start()
     {
@@ -48,7 +50,9 @@ public class MyVideoPlayer : MonoBehaviour
 
             if (e.Data == "CurrentState:0")
             {
-                reset = true;
+                IdleWating = true;
+                end = false;
+                sendLogo = false;
                 Debug.Log("Waiting");
             }
 
@@ -79,36 +83,56 @@ public class MyVideoPlayer : MonoBehaviour
         {
             sendStatus = false;
         }
-
+        //start press
         if (shouldStartPlaying && vPlayer.isPrepared)
         {
+            JumpToFrame(556);
             Play();
             IdleWating = false;
             shouldStartPlaying = false;
         }
-        if (IdleWating && vPlayer.isPrepared)
+
+        #region idle looping logic
+        if (loopIdle == true) {
+            if (vPlayer.frame == 555)
+            {
+                Pause();
+                JumpToFrame(0);
+                Play();
+                IdleWating = true;
+                loopIdle = false;
+            }
+       
+        }
+        if ( IdleWating && vPlayer.isPrepared)
         {
-            JumpToFrame(40);
-            Pause();
+          
+            JumpToFrame(0);
+            Stop();
+            Play();    
+            loopIdle = true;
+            Debug.LogError("IdleWating");
             IdleWating = false;
         }
-        if (reset==true)
-        {
-            JumpToFrame(40);
-            Pause();
-            reset = false;
-        }
-        if (vPlayer.frame == 1800)
+        #endregion
+
+         //send event
+        if (!sendLogo && vPlayer.frame == 1800)
         {
             Debug.LogError("VideoPlayer Finish Play");
             ws.Send("ChangeState:2");
-      
+            sendLogo = true;
 
         }
-        if (vPlayer.frame == 2070)
+        //end frame
+        if (!end && vPlayer.frame == 2040)
         {
+
+            IdleWating = false;
             Pause();
+            end = true;
         }
+       
     }
 
     public void Play()
