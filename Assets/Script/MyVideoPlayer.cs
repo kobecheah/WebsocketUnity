@@ -16,6 +16,8 @@ public class MyVideoPlayer : MonoBehaviour
     [Header("UI Controls")]
     public Slider progressBar;
 
+
+    float doubleClickTime = .2f, lastClickTime;
     //Private vars
     VideoPlayer vPlayer;
     public int vidFrameLength;
@@ -25,9 +27,13 @@ public class MyVideoPlayer : MonoBehaviour
     bool loopIdle = false;
     bool end = false;
     bool sendLogo = false;
+    bool sendState4 = false;
+    bool sendState3 = false;
+    bool Islooping = false;
     // Use this for initialization
     void Start()
     {
+        Screen.fullScreen = true;
         vPlayer = gameObject.GetComponent<VideoPlayer>();
         vPlayer.playbackSpeed = playbackSpeed;
         vPlayer.Prepare();
@@ -36,7 +42,7 @@ public class MyVideoPlayer : MonoBehaviour
         progressBar.onValueChanged.AddListener(JumpToFrame);
         IdleWating = true;
         ws = new WebSocket("wss://quixotic-grey-ceiling.glitch.me/");
-        ws.Connect();     
+        ws.Connect();
         ws.OnClose += WsOnOnClose;
         ws.OnMessage += (sender, e) =>
         {
@@ -45,6 +51,11 @@ public class MyVideoPlayer : MonoBehaviour
             {
                 shouldStartPlaying = true;
                 IdleWating = false;
+                loopIdle = false;
+                Islooping = false;
+                sendLogo = false;
+                sendState3 = false;
+                sendState4 = false;
                 Debug.Log("State Start");
             }
 
@@ -53,6 +64,8 @@ public class MyVideoPlayer : MonoBehaviour
                 IdleWating = true;
                 end = false;
                 sendLogo = false;
+                sendState3 = false;
+                sendState4 = false;
                 Debug.Log("Waiting");
             }
 
@@ -62,7 +75,17 @@ public class MyVideoPlayer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-       
+        if (Input.GetMouseButtonDown(0))
+        {
+            float timeSinceLastClick = Time.time - lastClickTime;
+
+            if (timeSinceLastClick <= doubleClickTime) { fullscreenonoff(); }
+
+            else
+                Debug.Log("Normal click");
+
+            lastClickTime = Time.time;
+        }
         if (ws == null)
         {
 
@@ -75,7 +98,7 @@ public class MyVideoPlayer : MonoBehaviour
                 Debug.LogError("Connected");
                 ws.Send("Connect:Screen");
                 sendStatus = true;
-              
+
             }
 
         }
@@ -86,38 +109,56 @@ public class MyVideoPlayer : MonoBehaviour
         //start press
         if (shouldStartPlaying && vPlayer.isPrepared)
         {
-            JumpToFrame(556);
+            if (!Islooping && end)
+            {
+
+                Stop();
+            }
+            JumpToFrame(485);
             Play();
             IdleWating = false;
             shouldStartPlaying = false;
+            loopIdle = false;
+            end = false;
         }
 
         #region idle looping logic
-        if (loopIdle == true) {
-            if (vPlayer.frame == 555)
+        if (loopIdle == true)
+        {
+            if (vPlayer.frame == 480)
             {
+
                 Pause();
                 JumpToFrame(0);
                 Play();
                 IdleWating = true;
                 loopIdle = false;
+                Islooping = true;
+
+
             }
-       
+
         }
-        if ( IdleWating && vPlayer.isPrepared)
+        if (IdleWating && vPlayer.isPrepared)
         {
-          
+
+
+            if (!Islooping)
+            {
+
+                Stop();
+                Islooping = true;
+            }
             JumpToFrame(0);
-            Stop();
-            Play();    
+            Play();
             loopIdle = true;
             Debug.LogError("IdleWating");
             IdleWating = false;
         }
         #endregion
 
-         //send event
-        if (!sendLogo && vPlayer.frame == 1800)
+        //send event
+        if (!sendLogo && vPlayer.frame == 1920)
         {
             Debug.LogError("VideoPlayer Finish Play");
             ws.Send("ChangeState:2");
@@ -125,14 +166,30 @@ public class MyVideoPlayer : MonoBehaviour
 
         }
         //end frame
-        if (!end && vPlayer.frame == 2040)
+        if (!end && vPlayer.frame == 2570)
         {
 
             IdleWating = false;
             Pause();
             end = true;
+            loopIdle = false;
+            Islooping = false;
         }
-       
+
+        if (!sendState4 && vPlayer.frame == 600)
+        {
+            Debug.LogError("sendState4");
+            ws.Send("ChangeState:4");
+            sendState4 = true;
+
+        }
+        if (!sendState3 && vPlayer.frame == 1200)
+        {
+            Debug.LogError("sendState3");
+            ws.Send("ChangeState:3");
+            sendState3 = true;
+
+        }
     }
 
     public void Play()
@@ -166,9 +223,21 @@ public class MyVideoPlayer : MonoBehaviour
         {
             if (!ws.IsAlive)
             {
-                Thread.Sleep(10000);
+                Thread.Sleep(3000);
                 ws.Connect();
             }
+        }
+    }
+
+    public void fullscreenonoff()
+    {
+        if (Screen.fullScreen == true)
+        {
+            Screen.fullScreen = false;
+        }
+        else
+        {
+            Screen.fullScreen = true;
         }
     }
 }
